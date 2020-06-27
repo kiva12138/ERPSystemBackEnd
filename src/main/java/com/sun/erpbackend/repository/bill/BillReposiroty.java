@@ -84,4 +84,54 @@ public interface BillReposiroty extends JpaRepository<Bill, Integer> {
 	int findBillCountWithStatus(@Param("id")Integer id, @Param("name")String name, @Param("kind")Integer kind,
 			@Param("output")String output, @Param("material")String material, 
 			@Param("stationId")Integer stationId, @Param("status")Integer status);
+	
+	@Query(nativeQuery=true,value="SELECT * FROM bill " +
+			"WHERE if(?1!=0,  id=?1,              1=1) " +
+			"and   if(?2!='', name like %?2%,     1=1) " +
+			"and   if(?3!=0,  opkind=?3,          1=1) " +
+			"and   if(?6!=0,  stationid=?6,       1=1) " +
+			"and   if(?5!=0,  usebrief like %?5%, 1=1) " +
+			"and   if(?4!=0,  outbrief like %?4%, 1=1) " +
+			"and   status=4 OR status=5")
+	Page<Bill> findStationBillProducing(@Param("id")Integer id, @Param("name")String name, @Param("kind")Integer kind,
+			@Param("output")String output, @Param("material")String material, 
+			@Param("stationId")Integer stationId, @Param("status")Integer status,
+			Pageable pageable);
+	
+	@Query(nativeQuery=true,value="SELECT count(id) FROM bill " +
+			"WHERE if(?1!=0,  id=?1,              1=1) " +
+			"and   if(?2!='', name like %?2%,     1=1) " +
+			"and   if(?3!=0,  opkind=?3,          1=1) " +
+			"and   if(?6!=0,  stationid=?6,       1=1) " +
+			"and   if(?5!=0,  usebrief like %?5%, 1=1) " +
+			"and   if(?4!=0,  outbrief like %?4%, 1=1) " +
+			"and   status=4 OR status=5")
+	int findStationBillProducingCount(@Param("id")Integer id, @Param("name")String name, @Param("kind")Integer kind,
+			@Param("output")String output, @Param("material")String material, 
+			@Param("stationId")Integer stationId, @Param("status")Integer status);
+	
+
+	
+	
+	@Query(nativeQuery=true, value="SELECT * FROM bill WHERE status!=7 AND status!=8")
+	List<Bill> findBillsActive();
+	
+	@Query(nativeQuery=true, value="SELECT * FROM bill WHERE status=7")
+	List<Bill> findBillsSuccess();
+	
+	@Query(nativeQuery=true, value="SELECT * FROM bill WHERE status=8")
+	List<Bill> findBillsOver();
+	
+	@Query(nativeQuery=true, value="SELECT * FROM bill WHERE status=1 OR status=2")
+	List<Bill> findBillsWaiting();
+	
+	@Query(nativeQuery=true, value="SELECT * FROM bill WHERE status=4 OR status=5")
+	List<Bill> findBillsProducing();
+	
+	@Query(nativeQuery=true, value="SELECT * FROM bill WHERE status=6")
+	List<Bill> findBillsStopping();
+	
+	@Query(nativeQuery=true, value="SELECT count(id) FROM bill WHERE status=3")
+	int findBillsRefusedCout();
 }
+

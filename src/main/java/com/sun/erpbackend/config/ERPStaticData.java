@@ -14,6 +14,8 @@ public class ERPStaticData {
 	public static List<String> materialStatus = new ArrayList<String>();	
 	public static List<String> billStatusList = new ArrayList<String>();
 	public static List<String> stationStatusList = new ArrayList<String>();
+	public static List<String> treeStatusList = new ArrayList<String>();
+	public static List<String> refuseReasonList = new ArrayList<>();
 	
 	public static int defaultMaterialWarnThreshold = 50;
 	public static int defaultMaterialDangerThreshold = 20;
@@ -21,7 +23,9 @@ public class ERPStaticData {
 	public static int materialCategoryPagination = 15;
 	public static int billPagination = 15;
 	public static int stationPagination = 15;
+	public static int recordPagination = 15;
 	public static int stationStatisticsPagination = 35;
+	public static int treePagination = 30;
 
 	
 	public ERPStaticData () {
@@ -45,5 +49,14 @@ public class ERPStaticData {
 		stationStatusList.add(1, "生产中");
 		stationStatusList.add(2, "已停工");
 		stationStatusList.add(3, "休整中");
+		
+		treeStatusList.add(1, "正常");
+		treeStatusList.add(2, "谨慎");
+		treeStatusList.add(3, "禁用");
+		
+		refuseReasonList.add(1, "物料不足");
+		refuseReasonList.add(2, "正在忙于其他生产");
+		refuseReasonList.add(3, "工位维护");
+		refuseReasonList.add(4, "其他原因");
 	}
 }

@@ -21,17 +21,23 @@ import com.sun.erpbackend.config.ERPStaticData;
 import com.sun.erpbackend.entity.bill.Bill;
 import com.sun.erpbackend.entity.bill.BillOutput;
 import com.sun.erpbackend.entity.bill.BillUse;
+import com.sun.erpbackend.entity.bill.RefuseBill;
 import com.sun.erpbackend.entity.material.Material;
+import com.sun.erpbackend.entity.tree.TreeBasic;
 import com.sun.erpbackend.repository.bill.BillOutputRepository;
 import com.sun.erpbackend.repository.bill.BillReposiroty;
 import com.sun.erpbackend.repository.bill.BillUseRepository;
+import com.sun.erpbackend.repository.bill.RefuseBillRepository;
 import com.sun.erpbackend.repository.material.MaterialRepository;
 import com.sun.erpbackend.repository.station.StationRepository;
+import com.sun.erpbackend.repository.tree.TreeBasicRepository;
+import com.sun.erpbackend.repository.tree.TreeRepository;
 import com.sun.erpbackend.response.BillAllDataResponse;
 import com.sun.erpbackend.response.BillOverallResponse;
 import com.sun.erpbackend.response.bill.BillSearchResponse;
 import com.sun.erpbackend.response.bill.SingleBill;
 import com.sun.erpbackend.response.bill.SingleBillMaterial;
+import com.sun.erpbackend.service.Tree.TreeService;
 import com.sun.erpbackend.service.material.MaterialProduceService;
 import com.sun.erpbackend.service.material.MaterialService;
 
@@ -53,6 +59,14 @@ public class BillService {
 	MaterialProduceService materialProduceService;
 	@Autowired
 	StationRepository stationRepository;
+	@Autowired
+	TreeRepository treeRepository;
+	@Autowired
+	TreeBasicRepository treeBasicRepository;
+	@Autowired
+	TreeService treeService;
+	@Autowired
+	RefuseBillRepository refuseBillRepository;
 	
 	/**
 	 * Get The Overall Data Of All Bills
@@ -136,6 +150,71 @@ public class BillService {
 	}
 	
 	/**
+	 * Create New Bill With Tree
+	 * @param name
+	 * @param output
+	 * @param outputMount
+	 * @param materials
+	 * @return 1-Success 2-Error 4-Material Not Exist 5-TreeNotExist
+	 */
+	public int createNewBillWithTree(String name, int output, int estimateTime, int outputMount, Integer treeId, String description) {
+
+		if(!this.materialRepository.existsById(Integer.valueOf(output))) {
+			return 4;
+		}
+		if (!this.treeRepository.existsById(treeId)) {
+			return 5;
+		}
+		if(this.treeRepository.findById(treeId).get().getTargetmid()!=output) {
+			return 6;
+		}
+		List<TreeBasic> treeBasics = this.treeBasicRepository.findByTid(treeId);
+		for(TreeBasic s : treeBasics) {
+			if(!this.materialRepository.existsById(s.getMid())) {
+				return 4;
+			}
+		}
+		Bill bill = new Bill();
+		bill.setName(name);
+		bill.setDescription(description);
+		bill.setOutputKind(this.materialRepository.findMaterialKindById(output));
+		bill.setEstimateTime(estimateTime);
+		bill.setStatus(1);
+		bill.setCreatedTime(new Date());
+		bill.setOutBrief(String.valueOf(output));
+		StringBuilder builder = new StringBuilder();
+		for(TreeBasic s : treeBasics) {
+			builder.append(s.getMid());
+		}
+		bill.setUseBrief(builder.toString());
+		Bill result = this.billReposiroty.saveAndFlush(bill);
+		
+		if(result.getId() == 0) {
+			return 2;
+		}
+		BillOutput billOutput = new BillOutput();
+		billOutput.setBillId(result.getId());
+		billOutput.setHaveOutput(0);
+		billOutput.setMount(outputMount);
+		billOutput.setOutputMaterialId(output);
+		this.billOutputRepository.saveAndFlush(billOutput);
+		
+		List<BillUse> billUses = new ArrayList<BillUse>();
+		for(TreeBasic s : treeBasics) {
+			BillUse billUse = new BillUse();
+			billUse.setBillId(result.getId());
+			billUse.setHaveUsed(0);
+			billUse.setUseMaterialId(s.getMid());
+			billUse.setMount(s.getMount() * outputMount);
+			billUses.add(billUse);
+		}
+		billUseRepository.saveAll(billUses);
+		this.treeService.useTree(treeId);
+		return 1;
+	}
+	
+	
+	/**
 	 * Edit Bill
 	 * @param name
 	 * @param output
@@ -194,6 +273,70 @@ public class BillService {
 			billUses.add(billUse);
 		}
 		billUseRepository.saveAll(billUses);
+		return 1;
+	}
+	
+	
+	/**
+	 * Edit Bill
+	 * @param name
+	 * @param output
+	 * @param outputMount
+	 * @param use
+	 * @return 1-Success 2-Error
+	 */
+	public int editBillWithTree(Integer id, String name, int output,
+			int estimateTime, int outputMount, int treeId, String description) {
+		Bill bill = this.billReposiroty.findById(id).orElse(null);
+		if(bill == null) {
+			return 2;
+		}
+		if(!this.materialRepository.existsById(Integer.valueOf(output))) {
+			return 4;
+		}
+		if (!this.treeRepository.existsById(treeId)) {
+			return 5;
+		}
+		if(this.treeRepository.findById(treeId).get().getTargetmid()!=output) {
+			return 6;
+		}
+		List<TreeBasic> treeBasics = this.treeBasicRepository.findByTid(treeId);
+		StringBuilder builder = new StringBuilder();
+		for(TreeBasic s : treeBasics) {
+			if(!this.materialRepository.existsById(s.getMid())) {
+				return 4;
+			}
+			builder.append(s.getMid());
+		}
+		bill.setUseBrief(builder.toString());
+		bill.setName(name);
+		bill.setDescription(description);
+		bill.setOutputKind(this.materialRepository.findMaterialKindById(output));
+		bill.setEstimateTime(estimateTime);
+		bill.setStatus(1);
+		bill.setOutBrief(String.valueOf(output));
+		Bill result = this.billReposiroty.saveAndFlush(bill);
+		
+		if(result.getId() == 0) {
+			return 2;
+		}
+		BillOutput billOutput = billOutputRepository.findByBillId(result.getId());
+		billOutput.setMount(outputMount);
+		billOutput.setOutputMaterialId(output);
+		this.billOutputRepository.saveAndFlush(billOutput);
+
+		List<BillUse> billUses = new ArrayList<BillUse>();
+		billUseRepository.deleteByBillId(result.getId());
+		for(TreeBasic s : treeBasics) {
+			BillUse billUse = new BillUse();
+			billUse.setBillId(result.getId());
+			billUse.setHaveUsed(0);
+			billUse.setUseMaterialId(s.getMid());
+			billUse.setMount(s.getMount() * outputMount);
+			billUses.add(billUse);
+		}
+		billUseRepository.saveAll(billUses);
+		this.treeService.useTree(treeId);
 		return 1;
 	}
 	
@@ -273,6 +416,14 @@ public class BillService {
 			singleBill.setEstimateTime(bill.getEstimateTime());
 			singleBill.setStatus(bill.getStatus());
 			singleBill.setDescription(bill.getDescription());
+			
+			RefuseBill refuseBill = this.refuseBillRepository.findByBillId(bill.getId());
+			if (refuseBill != null) {
+				singleBill.setRefuseKind(refuseBill.getRefusekind());
+			}
+			else {
+				singleBill.setRefuseKind(0);
+			}
 			
 			BillOutput billOutput = this.billOutputRepository.findOutputByBillId(bill.getId());
 			singleBill.setOutput(this.materialRepository.findById(billOutput.getOutputMaterialId()).orElse(null).getName());
@@ -557,7 +708,7 @@ public class BillService {
 		return 1;
 	}
 
-	public int refuseBill(Integer billId, String reason) {
+	public int refuseBill(Integer billId, String reason, Integer kind) {
 		if(!this.billReposiroty.existsById(billId)) {
 			return 3;
 		}
@@ -568,6 +719,11 @@ public class BillService {
 			bill.setStatus(3);
 			bill.setRefuseReason(reason);
 			this.billReposiroty.saveAndFlush(bill);
+			this.refuseBillRepository.deleteByBillId(bill.getId());
+			RefuseBill refuseBill = new RefuseBill();
+			refuseBill.setBillid(bill.getId());
+			refuseBill.setRefusekind(kind);
+			this.refuseBillRepository.saveAndFlush(refuseBill);
 		}
 		return 1;
 	}
@@ -727,6 +883,14 @@ public class BillService {
 			singleBill.setStoppedTime(bill.getStoppedTime());
 			singleBill.setCompleteTime(bill.getCompleteTime());
 			
+			RefuseBill refuseBill = this.refuseBillRepository.findByBillId(bill.getId());
+			if (refuseBill != null) {
+				singleBill.setRefuseKind(refuseBill.getRefusekind());
+			}
+			else {
+				singleBill.setRefuseKind(0);
+			}
+			
 			BillOutput billOutput = this.billOutputRepository.findOutputByBillId(bill.getId());
 			singleBill.setOutput(this.materialRepository.findById(billOutput.getOutputMaterialId()).orElse(null).getName());
 			singleBill.setOutputMount(billOutput.getMount());
@@ -759,5 +923,71 @@ public class BillService {
 		return response;
 	}
 	
+  public BillSearchResponse findStationBillProducing(Integer id, String name, Integer kind, Integer status, Integer output,
+		Integer material, Integer stationId, Integer page) {
+	  	Sort sort = Sort.by(Direction.DESC, "id");
+		Page<Bill> bills = this.billReposiroty.findStationBillProducing(id, name, kind, output.toString(), material.toString(),
+				stationId, status, PageRequest.of(page, ERPStaticData.billPagination, sort));
+		BillSearchResponse response = new BillSearchResponse();
+		response.setAllLength(this.billReposiroty.findStationBillProducingCount(id, name, kind, 
+				output.toString(), material.toString(), stationId, status));
+		if(bills == null) {
+			response.setCode(2);
+			return response;
+		}
+		for(Bill bill : bills) {
+			SingleBill singleBill = new SingleBill();
+			singleBill.setId(bill.getId());
+			singleBill.setName(bill.getName());
+			singleBill.setOutputKind(bill.getOutputKind());
+			singleBill.setEstimateTime(bill.getEstimateTime());
+			singleBill.setStatus(bill.getStatus());
+			singleBill.setRefuseReason(bill.getRefuseReason());
+			singleBill.setStation(bill.getStationId());
+			singleBill.setDescription(bill.getDescription());
+			singleBill.setAcceptedTime(bill.getDistributeTime());
+			singleBill.setStoppedReason(bill.getStoppedReson());
+			singleBill.setStoppedTime(bill.getStoppedTime());
+			singleBill.setCompleteTime(bill.getCompleteTime());
+			
+			RefuseBill refuseBill = this.refuseBillRepository.findByBillId(bill.getId());
+			if (refuseBill != null) {
+				singleBill.setRefuseKind(refuseBill.getRefusekind());
+			}
+			else {
+				singleBill.setRefuseKind(0);
+			}
+			
+			BillOutput billOutput = this.billOutputRepository.findOutputByBillId(bill.getId());
+			singleBill.setOutput(this.materialRepository.findById(billOutput.getOutputMaterialId()).orElse(null).getName());
+			singleBill.setOutputMount(billOutput.getMount());
+			
+			List<BillUse> billUses = this.billUseRepository.findUseByBillId(bill.getId());
+			for(BillUse billUse : billUses) {
+				SingleBillMaterial singleBillMaterial = new SingleBillMaterial();
+				singleBillMaterial.setId(billUse.getUseMaterialId());
+				singleBillMaterial.setName(billUse.getMount().toString()+"*"+
+						this.materialRepository.findById(billUse.getUseMaterialId()).orElse(null).getName());
+				singleBill.getMaterials().add(singleBillMaterial);
+			}
+			List<BillUse> billHaveUses = this.billUseRepository.findHaveUseByBillId(bill.getId());
+			for(BillUse billUse : billHaveUses) {
+				SingleBillMaterial singleBillMaterial = new SingleBillMaterial();
+				singleBillMaterial.setId(billUse.getUseMaterialId());
+				singleBillMaterial.setName(billUse.getMount().toString()+"*"+
+						this.materialRepository.findById(billUse.getUseMaterialId()).orElse(null).getName());
+				singleBill.getHaveused().add(singleBillMaterial);
+			}
+			BillOutput billHaveOutput = this.billOutputRepository.findHaveOutputByBillId(bill.getId());
+			if(billHaveOutput == null) {
+				singleBill.setHaveoutputMount(0);
+			}else {
+				singleBill.setHaveoutputMount(billHaveOutput.getMount());
+			}
+			response.getData().add(singleBill);
+		}
+		response.setCode(1);
+		return response;
+	}
 	
 }

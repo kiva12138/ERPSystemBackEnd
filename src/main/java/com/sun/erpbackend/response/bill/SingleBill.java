@@ -20,6 +20,7 @@ public class SingleBill {
 	private Date acceptedTime;
 	private Date stoppedTime;
 	private Date completeTime;
+	private Integer refuseKind;
 	private List<SingleBillMaterial> materials;
 	private List<SingleBillMaterial> haveused;
 	
@@ -37,6 +38,20 @@ public class SingleBill {
 		this.haveoutputMount = 0;
 	}
 	
+	
+	
+	public Integer getRefuseKind() {
+		return refuseKind;
+	}
+
+
+
+	public void setRefuseKind(Integer refuseKind) {
+		this.refuseKind = refuseKind;
+	}
+
+
+
 	public Integer getId() {
 		return id;
 	}

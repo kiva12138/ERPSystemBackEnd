@@ -112,6 +112,87 @@ public class BillController {
 		return response;
 	}
 	
+	
+	/**
+	 * Create New Bill WithTree
+	 * @param name
+	 * @param output
+	 * @param outputMount
+	 * @param estimateTime
+	 * @param materials
+	 * @param description
+	 * @return
+	 */
+	@PostMapping("/createnewwithtree")
+	public GeneralResponse newBillWithTree(@RequestBody NewBillParamsWithTree param) {
+		GeneralResponse response = new GeneralResponse();
+		if(param.name=="" || param.output == 0 || param.outputMount < 1 || param.estimateTime < 0 || param.treeId==0) {
+			response.setCode(3);
+			response.setMessage("参数为空");
+		}else {
+			int code = this.billService.createNewBillWithTree(param.name, param.output, 
+					param.estimateTime, param.outputMount, param.treeId, param.description);
+			if(code == 2) {
+				response.setCode(2);
+				response.setMessage("内部错误");
+			}else if(code == 4){
+				response.setCode(4);
+				response.setMessage("输入的物料不存在");
+			}else if(code == 5){
+				response.setCode(5);
+				response.setMessage("输入的生产树不存在");
+			}else if(code == 6){
+				response.setCode(6);
+				response.setMessage("生产树产出与指定产出不一致");
+			}else {
+				response.setCode(1);
+				response.setMessage("成功");
+			}
+		}
+		return response;
+	}
+	
+	/**
+	 * Edit Bill With Tree
+	 * @param name
+	 * @param output
+	 * @param outputMount
+	 * @param estimateTime
+	 * @param materials
+	 * @param description
+	 * @return
+	 */
+	@PostMapping("/editwithtree")
+	public GeneralResponse editBillWithTree(@RequestBody EditBillParamsWithTree param) {
+		GeneralResponse response = new GeneralResponse();
+		if(param.id == 0 || param.name=="" || param.output == 0 ||
+			param.outputMount < 1 || param.estimateTime < 0 || param.treeId==0) {
+			response.setCode(3);
+			response.setMessage("参数为空");
+		}else {
+			int code = this.billService.editBillWithTree(param.id,param.name, param.output,
+					param.estimateTime, param.outputMount,param.treeId, param.description);
+			if(code == 2) {
+				response.setCode(2);
+				response.setMessage("内部错误");
+			}else if(code == 4){
+				response.setCode(4);
+				response.setMessage("物料不存在");
+			}else if(code == 5){
+				response.setCode(5);
+				response.setMessage("生产树不存在");
+			}else if(code == 6){
+				response.setCode(6);
+				response.setMessage("生产树产出与指定产出不一致");
+			}else {
+				response.setCode(1);
+				response.setMessage("成功");
+			}
+		}
+		return response;
+	}
+	
+	
 	/**
 	 * 
 	 * @param billId
@@ -183,13 +264,13 @@ public class BillController {
 	}
 	
 	@PostMapping("/refuse")
-	public GeneralResponse refuseBill(Integer billId, String reason) {
+	public GeneralResponse refuseBill(Integer billId, String reason, Integer kind) {
 		GeneralResponse response = new GeneralResponse();
-		if(billId == 0) {
+		if(billId == 0 || kind == null || kind <= 0 || kind >= 5) {
 			response.setCode(3);
 			response.setMessage("参数为空");
 		}else {
-			int code=this.billService.refuseBill(billId, reason);
+			int code=this.billService.refuseBill(billId, reason, kind);
 			if(code == 2 ) {
 				response.setCode(2);
 				response.setMessage("内部错误");
@@ -287,6 +368,23 @@ public class BillController {
 			name = "";
 		}
 		response = this.billService.findBillWithStatus(id, name, kind, status, output, material, stationId, page);
+		if(response.getCode()==2) {
+			response.setMessage("内部错误");
+		}else {
+			response.setMessage("成功");
+		}
+		return response;
+	}
+	
+	
+	@GetMapping("/findstationbillproducing")
+	public BillSearchResponse findStationBillProducing(Integer id, String name, Integer kind, Integer status,
+			Integer output, Integer material, Integer stationId, Integer page) {
+		BillSearchResponse response = new BillSearchResponse();
+		if(name==null) {
+			name = "";
+		}
+		response = this.billService.findStationBillProducing(id, name, kind, status, output, material, stationId, page);
 		if(response.getCode()==2) {
 			response.setMessage("内部错误");
 		}else {

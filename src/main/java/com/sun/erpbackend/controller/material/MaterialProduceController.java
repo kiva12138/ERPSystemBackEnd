@@ -1,5 +1,7 @@
 package com.sun.erpbackend.controller.material;
 
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Date;
 
@@ -10,8 +12,10 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.sun.erpbackend.config.ERPStaticData;
 import com.sun.erpbackend.response.GeneralResponse;
 import com.sun.erpbackend.response.MaterialStatisticsResposne;
+import com.sun.erpbackend.response.record.MaterialProduceResponse;
 import com.sun.erpbackend.service.material.MaterialProduceService;
 
 @CrossOrigin
@@ -119,5 +123,85 @@ public class MaterialProduceController {
 			resposne.setMessage("Success");
 		}
 		return resposne;
+	}
+
+	/**
+	 * Search the statistics Of One material Or Some
+	 * @param id
+	 * @param name
+	 * @param date
+	 * @return code 1-correct 2-internal error 3-empty
+	 */
+	@GetMapping("/get")
+	public MaterialProduceResponse findProduceRecord(Integer id, Integer stationid,
+			Integer type, String starttime, String endtime, int page) {
+		int pageSize = ERPStaticData.recordPagination;
+		MaterialProduceResponse resposne = new MaterialProduceResponse();
+		if(type == 2) {
+			type = -1;
+		}
+		Date startDate  = new Date();
+		Date endDate = new Date();
+		if (starttime == "") {
+			Calendar calendar=Calendar.getInstance();
+			calendar.add(Calendar.DATE, -30);
+			startDate = calendar.getTime();
+		}else {
+			SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd"); //注意月份是MM
+	        try {
+				startDate = simpleDateFormat.parse(starttime);
+			} catch (ParseException e) {
+				resposne.setCode(2);
+				resposne.setMessage("Internal Error");
+				e.printStackTrace();
+				return resposne;
+			}
+		}
+		
+		if (endtime != "") {
+			SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd"); //注意月份是MM
+	        try {
+				endDate = simpleDateFormat.parse(endtime);
+			} catch (ParseException e) {
+				resposne.setCode(2);
+				resposne.setMessage("Internal Error");
+				e.printStackTrace();
+				return resposne;
+			}
+		}
+		
+		resposne = this.materialProduceService.findMaterialProduceBySearch(id, stationid, type, startDate, endDate, page, pageSize);
+		if(resposne.getCode() == 2) {
+			resposne.setMessage("Internal Error");
+		}else {
+			resposne.setMessage("Success");
+		}
+		return resposne;
+	}
+	
+	/**
+	 * delete material produce record by id
+	 * @param date
+	 * @return code 1-correct 2-internal error 3-empty
+	 */
+	@PostMapping("/deletebyid")
+	public GeneralResponse deleteMaterialProduceByID(Integer id) {
+		GeneralResponse response = new GeneralResponse();
+		if(id  == null || id == 0 ) {
+			response.setCode(3);
+			response.setMessage("Empty Value");
+			return response;
+		}
+		int result = this.materialProduceService.deleteMaterialProduceById(id);
+		if (result == 2) {
+			response.setCode(2);
+			response.setMessage("Internal Error");
+			return response;
+		}
+
+		response.setCode(1);
+		response.setMessage("Success");
+		return response;
+		
 	}
 }

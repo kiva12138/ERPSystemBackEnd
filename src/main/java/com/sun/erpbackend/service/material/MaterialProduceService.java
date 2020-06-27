@@ -20,6 +20,7 @@ import com.sun.erpbackend.config.ERPStaticData;
 import com.sun.erpbackend.entity.material.MaterialProduce;
 import com.sun.erpbackend.repository.material.MaterialProduceRepository;
 import com.sun.erpbackend.response.MaterialStatisticsResposne;
+import com.sun.erpbackend.response.record.MaterialProduceResponse;
 
 @Service
 @Secured("ROLE_ADMIN")
@@ -68,6 +69,16 @@ public class MaterialProduceService {
 			e.printStackTrace();
 			return 2;
 		}
+		return 1;
+	}
+	
+	/**
+	 * Delete By Id
+	 * @param date 
+	 * @return 1-Correct 2-ERROR
+	 */
+	public int deleteMaterialProduceById(Integer id) {
+		this.materialProduceRepository.deleteById(id);
 		return 1;
 	}
 	
@@ -198,5 +209,28 @@ public class MaterialProduceService {
 		
 		return resposne;
 		
+	}
+
+	public MaterialProduceResponse findMaterialProduceBySearch(Integer id, Integer stationid, Integer kind, Date startDate,
+			Date endDate, int page, int pageSize) {
+		MaterialProduceResponse response = new MaterialProduceResponse();
+		List<MaterialProduce> result = new ArrayList<>();
+		Sort sort = Sort.by(Direction.DESC, "id");
+		try {
+			response.setAllLength(this.materialProduceRepository.findProduceMountBySearch(id, stationid, kind, startDate, endDate));
+			result = this.materialProduceRepository.findProduceBySearch(id, stationid, kind, startDate, endDate, 
+					PageRequest.of(page, ERPStaticData.billPagination, sort));
+			for(int i=0; i < result.size(); i++) {
+				if(result.get(i).getWay() == -1) {
+					result.get(i).setWay(2);
+				}
+			}
+			response.setRecords(result);
+		} catch (Exception e) {
+			response.setCode(2);
+			return response;
+		}
+		response.setCode(1);
+		return response;
 	}
 }

@@ -63,6 +63,28 @@ public class MaterialService {
 		response.setAllLength(this.materialRepository.findMaterialCategoryCount(id, name, status, kind));
 		return response;
 	}
+	
+	public MaterialCategorySearchResponse findMaterialCategoryExceptKind(int id, String name, int status, int kind, int page, int size) {
+		MaterialCategorySearchResponse response = new MaterialCategorySearchResponse();
+		Sort sort = Sort.by(Direction.DESC, "id");
+		Page<Material> result = this.materialRepository.findMaterialCategoryExceptKind(id, name, status, kind,
+				PageRequest.of(page, size, sort));
+		if (result == null) {
+			response.setCode(2);
+			return response;
+		}
+		DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
+		for(Material material : result) {
+			response.addMaterial(material.getId(), material.getName(),
+					material.getAllMount(), material.getDescription(),
+					material.getLeftMount(), material.getDistributedMount(),
+					material.getKind(), material.getStatus(),
+					dateFormat.format(material.getLastTransport()));
+		}
+		response.setCode(1);
+		response.setAllLength(this.materialRepository.findMaterialCategoryMountExceptKind(id, name, status, kind));
+		return response;
+	}
 
 	/**
 	 * 增加新的物料种类
@@ -268,5 +290,25 @@ public class MaterialService {
 		response.setCode(1);
 		response.setAllLength(this.materialRepository.findMaterialCategoryCount(id, name, status, kind));
 		return response;
+	}
+
+	public int findMaterialCategoryMountExceptStatus(int id, String name, int status, int kind) {
+		try {
+			int result = this.materialRepository.findMaterialCategoryMountExceptStatus(id, name, status, kind);
+			return result;
+		} catch (Exception e) {
+			return -1;
+		}
+		
+	}
+	
+	public int findMaterialCategoryMountExceptStatusAndKind(int id, String name, int status, int kind) {
+		try {
+			int result = this.materialRepository.findMaterialCategoryMountExceptStatusAndKind(id, name, status, kind);
+			return result;
+		} catch (Exception e) {
+			return -1;
+		}
+		
 	}
 }

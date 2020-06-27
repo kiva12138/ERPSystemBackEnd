@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.sun.erpbackend.response.GeneralResponse;
 import com.sun.erpbackend.response.MaterialCategorySearchResponse;
+import com.sun.erpbackend.response.MaterialMountResponse;
 import com.sun.erpbackend.response.threshold.ThresholdResponse;
 import com.sun.erpbackend.service.material.MaterialService;
 
@@ -45,6 +46,65 @@ public class MaterialController {
 			response.setMessage("内部错误");
 			return response;
 		}
+		response.setMessage("成功");
+		return response;
+	}
+	
+	/**
+	 * code: 
+	 * 	1 correct
+	 *  2 内部错误
+	 *  3 参数为空
+	 * @param id
+	 * @param name
+	 * @param status
+	 * @param page Caution: Start from 0
+	 * @param kind
+	 * @return
+	 */
+	@GetMapping("/getcategoryexceptkind")
+	public MaterialCategorySearchResponse findMaterialCategoryExceptKind(int id, String name, int status, int kind, int page, int size) {
+		MaterialCategorySearchResponse response = new MaterialCategorySearchResponse();
+		/*if(id == 0 && name == "" && status == 0 && kind == 0) {
+			response.setCode(3);
+			response.setMessage("参数为空");
+			return response;
+		}*/
+		response = this.materialService.findMaterialCategoryExceptKind(id, name, status, kind, page, size);
+		if(response.getCode() == 2) {
+			response.setMessage("内部错误");
+			return response;
+		}
+		response.setMessage("成功");
+		return response;
+	}
+	
+	@GetMapping("/getcategorymountexceptstatus")
+	public MaterialMountResponse findMaterialCategoryMountExceptStatus(int id, String name, int status, int kind) {
+		MaterialMountResponse response = new MaterialMountResponse();
+		int result = this.materialService.findMaterialCategoryMountExceptStatus(id, name, status, kind);
+		if(result == -1) {
+			response.setMessage("内部错误");
+			response.setCode(2);
+			return response;
+		}
+		response.setCode(1);
+		response.setMount(result);
+		response.setMessage("成功");
+		return response;
+	}
+	
+	@GetMapping("/getcategorymountexceptstatusandkind")
+	public MaterialMountResponse findMaterialCategoryMountExceptStatusAndKind(int id, String name, int status, int kind) {
+		MaterialMountResponse response = new MaterialMountResponse();
+		int result = this.materialService.findMaterialCategoryMountExceptStatusAndKind(id, name, status, kind);
+		if(result == -1) {
+			response.setMessage("内部错误");
+			response.setCode(2);
+			return response;
+		}
+		response.setCode(1);
+		response.setMount(result);
 		response.setMessage("成功");
 		return response;
 	}

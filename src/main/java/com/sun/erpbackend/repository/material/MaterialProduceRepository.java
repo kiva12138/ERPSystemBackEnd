@@ -42,4 +42,21 @@ public interface MaterialProduceRepository extends JpaRepository<MaterialProduce
 	@Query(nativeQuery=true, value="DELETE * FROM materialproduce " +
 			"WHERE time < ?1")
 	int deleteProduceByTime(@Param("end")Date end);
+	
+	@Query(nativeQuery=true, value="SELECT * FROM materialproduce " +
+			"WHERE if(?1!=0,mid=?1,1=1) " +
+			"AND if(?2!=0,stationid=?2,1=1) " +
+			"AND if(?3!=0,way=?3,1=1) " +
+			"AND time > ?4 AND time < ?5")
+	List<MaterialProduce> findProduceBySearch(@Param("id")Integer id, @Param("stationid")Integer stationid,
+			@Param("kind")Integer kind, @Param("start")Date startDate, @Param("end")Date endDate, Pageable pageable);
+	
+	@Query(nativeQuery=true, value="SELECT count(id) FROM materialproduce " +
+			"WHERE if(?1!=0,mid=?1,1=1) " +
+			"AND if(?2!=0,stationid=?2,1=1) " +
+			"AND if(?3!=0,way=?3,1=1) " +
+			"AND time > ?4 AND time < ?5")
+	int findProduceMountBySearch(@Param("id")Integer id, @Param("stationid")Integer stationid,
+			@Param("kind")Integer kind, @Param("start")Date startDate, @Param("end")Date endDate);
+
 }

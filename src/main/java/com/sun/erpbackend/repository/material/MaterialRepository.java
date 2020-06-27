@@ -33,6 +33,24 @@ public interface MaterialRepository extends JpaRepository<Material, Integer> {
 			@Param("status")int status, @Param("kind")int kind, Pageable pageable);
 	
 	@Query(nativeQuery = true,
+			value="SELECT * FROM material " +
+					"WHERE if(?1!=0,id=?1,1=1) "+
+					"and if(?2!='',name like %?2%,1=1) " +
+					"and if(?3!=0,status=?3,1=1) "+
+					"and kind != ?4")
+	Page<Material> findMaterialCategoryExceptKind(@Param("id")int id, @Param("name")String name,
+				@Param("status")int status, @Param("kind")int kind, Pageable pageable);
+	
+	@Query(nativeQuery = true,
+			value="SELECT count(id) FROM material " +
+					"WHERE if(?1!=0,id=?1,1=1) "+
+					"and if(?2!='',name like %?2%,1=1) " +
+					"and if(?3!=0,status=?3,1=1) "+
+					"and kind != ?4")
+	int findMaterialCategoryMountExceptKind(@Param("id")int id, @Param("name")String name,
+				@Param("status")int status, @Param("kind")int kind);
+	
+	@Query(nativeQuery = true,
 			value="SELECT count(id) FROM material " +
 					"WHERE if(?1!=0,id=?1,1=1) "+
 					"and if(?2!='',name like %?2%,1=1) " +
@@ -57,5 +75,21 @@ public interface MaterialRepository extends JpaRepository<Material, Integer> {
 	
 	@Query(nativeQuery=true,value="SELECT kind FROM material WHERE id=?1")
 	int findMaterialKindById(@Param("id")Integer id);
+
+	@Query(nativeQuery = true,
+			value="SELECT count(id) FROM material " +
+					"WHERE if(?1!=0,    id=?1,           1=1) "+
+					"and   if(?2!='',   name like %?2%,  1=1) " +
+					"and   status!=?3 "+
+					"and   if(?4!=0,    kind=?4,         1=1)")
+	int findMaterialCategoryMountExceptStatus(int id, String name, int status, int kind);
+	
+	@Query(nativeQuery = true,
+			value="SELECT count(id) FROM material " +
+					"WHERE if(?1!=0,    id=?1,           1=1) "+
+					"and   if(?2!='',   name like %?2%,  1=1) " +
+					"and   status!=?3 "+
+					"and   kind != ?3")
+	int findMaterialCategoryMountExceptStatusAndKind(int id, String name, int status, int kind);
 	
 }
